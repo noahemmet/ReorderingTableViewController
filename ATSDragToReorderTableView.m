@@ -104,7 +104,7 @@
  */
 
 
-#import "ATSDragToReorderTableViewController.h"
+#import "ATSDragToReorderTableView.h"
 
 
 #define TAG_FOR_ABOVE_SHADOW_VIEW_WHEN_DRAGGING 100
