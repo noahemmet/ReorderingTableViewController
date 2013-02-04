@@ -979,6 +979,9 @@ typedef enum {
 	[self.indicatorDelegate dragTableView:self removeDraggableIndicatorsFromCell:self.draggedCell];
 
 	[self.draggedCell removeFromSuperview];
+    
+    if( [self.dragDelegate respondsToSelector:@selector(dragTableView:didEndDraggingToRow:)] )
+        [self.dragDelegate dragTableView:self didEndDraggingToRow:self.indexPathBelowDraggedCell];
 
 	/*
 		Remaining cleanup.
