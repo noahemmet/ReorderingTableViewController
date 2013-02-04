@@ -212,25 +212,23 @@ typedef enum {
 }
 
 
-- (void)viewDidLoad {
-    /*URHERE[super viewDidLoad];
-
+- (void)becomeReady
+{
 	if ( self.reorderingEnabled )
 		[self establishGestures];
-*/
 
 	/*
 	 *	If app resigns active while we're dragging, safely complete the drag.
 	 */
-	/*URHERE__weak ATSDragToReorderTableViewController *blockSelf = self;
+    __weak ATSDragToReorderTableView *blockSelf = self;
 	if ( resignActiveObserver == nil )
 		resignActiveObserver = [[NSNotificationCenter defaultCenter] addObserverForName:UIApplicationWillResignActiveNotification object:nil queue:nil usingBlock:^(NSNotification *arg1) {
 			if ( [blockSelf isDraggingCell] ) {
-				ATSDragToReorderTableViewController *strongBlockSelf = blockSelf;
-				CGPoint currentPoint = [strongBlockSelf->dragGestureRecognizer translationInView:blockSelf.tableView];
+				ATSDragToReorderTableView *strongBlockSelf = blockSelf;
+				CGPoint currentPoint = [strongBlockSelf->dragGestureRecognizer translationInView:blockSelf];
 				[strongBlockSelf fastCompleteGesturesWithTranslationPoint:currentPoint];
 			}
-		}];*/
+		}];
 }
 
 

@@ -42,6 +42,8 @@
 		for (NSUInteger i = 0; i < numberOfItems; ++i)
 			[arrayOfItems addObject:[NSString stringWithFormat:@"Item #%i", i + 1]];
 	}
+    
+    [(ATSDragToReorderTableView *)self.tableView becomeReady];
 }
 
 - (void)viewDidAppear:(BOOL)animated {

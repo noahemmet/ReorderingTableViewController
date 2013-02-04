@@ -154,6 +154,8 @@
 // default is YES. Removes or adds gesture recognizers to self.tableView.
 @property (assign, getter=isReorderingEnabled) BOOL reorderingEnabled;
 
+- (void)becomeReady;
+
 - (BOOL)isDraggingCell;
 
 @property (weak) NSObject <ATSDragToReorderTableViewDelegate> *dragDelegate; // nil by default
