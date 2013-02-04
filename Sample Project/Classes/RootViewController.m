@@ -66,7 +66,7 @@
 		Disable reordering if there's one or zero items.
 		For this example, of course, this will always be YES.
 	 */
-	[self setReorderingEnabled:( arrayOfItems.count > 1 )];
+	[(ATSDragToReorderTableView *)self.tableView setReorderingEnabled:( arrayOfItems.count > 1 )];
 	
 	return arrayOfItems.count;
 }
@@ -88,12 +88,12 @@
 }
 
 // should be identical to cell returned in -tableView:cellForRowAtIndexPath:
-- (UITableViewCell *)cellIdenticalToCellAtIndexPath:(NSIndexPath *)indexPath forDragTableViewController:(ATSDragToReorderTableViewController *)dragTableViewController {
+/*URHERE - (UITableViewCell *)cellIdenticalToCellAtIndexPath:(NSIndexPath *)indexPath forDragTableViewController:(ATSDragToReorderTableViewController *)dragTableViewController {
 	UITableViewCell *cell = [[UITableViewCell alloc] initWithStyle:UITableViewCellStyleDefault reuseIdentifier:nil];
 	cell.textLabel.text = [arrayOfItems objectAtIndex:indexPath.row];
 	
 	return cell;
-}
+}*/
 
 /*
 	Required for drag tableview controller
