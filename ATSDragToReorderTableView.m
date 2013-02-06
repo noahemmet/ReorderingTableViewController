@@ -1103,43 +1103,51 @@ typedef enum {
 		}
 	}
 
+    if (rowToMoveTo != nil)
+    {
+        // Check with the delegate to ensure that this destination row is valid, and get another one if necessary.
+        
+        if ([self.delegate respondsToSelector:@selector(tableView:targetIndexPathForMoveFromRowAtIndexPath:toProposedIndexPath:)]) {
+            rowToMoveTo = [self.delegate tableView:self targetIndexPathForMoveFromRowAtIndexPath:self.indexPathBelowDraggedCell toProposedIndexPath:rowToMoveTo];
+        }
 
-	/*
-		If the dragged cell is covering a new row that isn't the one with the blank item, move the blank item to that new row.
-	 */
-	if (rowToMoveTo != nil && !(rowToMoveTo.section == self.indexPathBelowDraggedCell.section && rowToMoveTo.row == self.indexPathBelowDraggedCell.row)) {
-		/*
-			Tableview's dataSource must update before we ask the tableview to update rows.
-		 */
-		[self.dataSource tableView:self moveRowAtIndexPath:self.indexPathBelowDraggedCell toIndexPath:rowToMoveTo];
+        /*
+            If the dragged cell is covering a new row that isn't the one with the blank item, move the blank item to that new row.
+         */
+        if (rowToMoveTo != nil && !(rowToMoveTo.section == self.indexPathBelowDraggedCell.section && rowToMoveTo.row == self.indexPathBelowDraggedCell.row)) {
+            /*
+                Tableview's dataSource must update before we ask the tableview to update rows.
+             */
+            [self.dataSource tableView:self moveRowAtIndexPath:self.indexPathBelowDraggedCell toIndexPath:rowToMoveTo];
 
-		/*
-			Update the blank index path
-		 */
-		NSIndexPath *formerBlankIndexPath = self.indexPathBelowDraggedCell;
-		self.indexPathBelowDraggedCell = rowToMoveTo;
+            /*
+                Update the blank index path
+             */
+            NSIndexPath *formerBlankIndexPath = self.indexPathBelowDraggedCell;
+            self.indexPathBelowDraggedCell = rowToMoveTo;
 
-		/*
-			Then animate the row updates.
-		 */
-		if ( [self respondsToSelector:@selector(moveRowAtIndexPath:toIndexPath:)] )
-			[self moveRowAtIndexPath:formerBlankIndexPath toIndexPath:rowToMoveTo];
-		else {
-			[self beginUpdates];
-			[self deleteRowsAtIndexPaths:[NSArray arrayWithObject:formerBlankIndexPath] withRowAnimation:UITableViewRowAnimationNone];
-			[self insertRowsAtIndexPaths:[NSArray arrayWithObject:self.indexPathBelowDraggedCell] withRowAnimation:UITableViewRowAnimationNone];
-			[self endUpdates];
-		}
+            /*
+                Then animate the row updates.
+             */
+            if ( [self respondsToSelector:@selector(moveRowAtIndexPath:toIndexPath:)] )
+                [self moveRowAtIndexPath:formerBlankIndexPath toIndexPath:rowToMoveTo];
+            else {
+                [self beginUpdates];
+                [self deleteRowsAtIndexPaths:[NSArray arrayWithObject:formerBlankIndexPath] withRowAnimation:UITableViewRowAnimationNone];
+                [self insertRowsAtIndexPaths:[NSArray arrayWithObject:self.indexPathBelowDraggedCell] withRowAnimation:UITableViewRowAnimationNone];
+                [self endUpdates];
+            }
 
 
-		/*
-			Keep the cell under the dragged cell hidden.
-			This is a crucial line of code. Otherwise we get all kinds of graphical weirdness
-		 */
-		UITableViewCell *cellToHide = [self cellForRowAtIndexPath:self.indexPathBelowDraggedCell];
-		cellToHide.hidden = YES;
+            /*
+                Keep the cell under the dragged cell hidden.
+                This is a crucial line of code. Otherwise we get all kinds of graphical weirdness
+             */
+            UITableViewCell *cellToHide = [self cellForRowAtIndexPath:self.indexPathBelowDraggedCell];
+            cellToHide.hidden = YES;
 
-	}
+        }
+    }
 }
 
 
