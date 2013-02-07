@@ -100,14 +100,15 @@
 - (void)dragTableView:(ATSDragToReorderTableView *)dragTableView didEndDraggingToRow:(NSIndexPath *)destinationIndexPath;
 - (BOOL)dragTableView:(ATSDragToReorderTableView *)dragTableView shouldHideDraggableIndicatorForDraggingToRow:(NSIndexPath *)destinationIndexPath;
 
+@required
+// hate this, required to fix an iOS 6 bug where cell is hidden when going through normal paths to get a cell
+// you must make a new cell to return this (use reuseIdent == nil), do not use dequeueResable
+- (UITableViewCell *)cellIdenticalToCellAtIndexPath:(NSIndexPath *)indexPath forDragTableView:(ATSDragToReorderTableView *)dragTableView;
+
 @end
 
 
 @protocol ATSDragToReorderTableViewDraggableIndicators
-@optional
-// hate this, required to fix an iOS 6 bug where cell is hidden when going through normal paths to get a cell
-// you must make a new cell to return this (use reuseIdent == nil), do not use dequeueResable
-- (UITableViewCell *)cellIdenticalToCellAtIndexPath:(NSIndexPath *)indexPath forDragTableView:(ATSDragToReorderTableView *)dragTableView;
 
 @required
 /*******

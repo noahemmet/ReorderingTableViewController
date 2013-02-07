@@ -43,6 +43,7 @@
 			[arrayOfItems addObject:[NSString stringWithFormat:@"Item #%i", i + 1]];
 	}
     
+    ((ATSDragToReorderTableView *)self.tableView).dragDelegate = self;
     [(ATSDragToReorderTableView *)self.tableView becomeReady];
 }
 
@@ -90,12 +91,12 @@
 }
 
 // should be identical to cell returned in -tableView:cellForRowAtIndexPath:
-/*URHERE - (UITableViewCell *)cellIdenticalToCellAtIndexPath:(NSIndexPath *)indexPath forDragTableViewController:(ATSDragToReorderTableViewController *)dragTableViewController {
+- (UITableViewCell *)cellIdenticalToCellAtIndexPath:(NSIndexPath *)indexPath forDragTableView:(ATSDragToReorderTableView *)dragTableView {
 	UITableViewCell *cell = [[UITableViewCell alloc] initWithStyle:UITableViewCellStyleDefault reuseIdentifier:nil];
 	cell.textLabel.text = [arrayOfItems objectAtIndex:indexPath.row];
 	
 	return cell;
-}*/
+}
 
 /*
 	Required for drag tableview controller

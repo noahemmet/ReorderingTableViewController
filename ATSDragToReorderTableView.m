@@ -708,11 +708,7 @@ typedef enum {
 	/*
 		Get a new cell and put it on top of actual cell for that index path.
 	 */
-	UITableViewCell *cellCopy;
-	if ( [self.indicatorDelegate respondsToSelector:@selector(cellIdenticalToCellAtIndexPath:forDragTableView:)])
-		cellCopy = [self.indicatorDelegate cellIdenticalToCellAtIndexPath:indexPath forDragTableView:self];
-	else
-		cellCopy = [self.dataSource tableView:self cellForRowAtIndexPath:indexPath];
+	UITableViewCell *cellCopy = [self.dragDelegate cellIdenticalToCellAtIndexPath:indexPath forDragTableView:self];
 	cellCopy.frame = [self rectForRowAtIndexPath:indexPath];
 
 	[self addSubview:cellCopy];
