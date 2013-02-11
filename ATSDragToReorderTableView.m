@@ -212,8 +212,10 @@ typedef enum {
 }
 
 
-- (void)becomeReady
+- (void)becomeReady:(BOOL)reorderingEnabled
 {
+    _reorderingEnabled = reorderingEnabled;
+    
 	if ( self.reorderingEnabled )
 		[self establishGestures];
 

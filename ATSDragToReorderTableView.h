@@ -155,7 +155,7 @@
 // default is YES. Removes or adds gesture recognizers to self.tableView.
 @property (assign, getter=isReorderingEnabled) BOOL reorderingEnabled;
 
-- (void)becomeReady;
+- (void)becomeReady:(BOOL)reorderingEnabled;
 
 - (BOOL)isDraggingCell;
 
