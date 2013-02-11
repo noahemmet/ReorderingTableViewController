@@ -590,8 +590,8 @@ typedef enum {
 		 *	In this case, set the tableview content offset y to 0.
 		 *	The change in autoscroll is only how far it is to 0.
 		 */
-		CGFloat scrollDistance = tableViewContentOffset.y;
-		tableViewContentOffset.y = 0;
+		CGFloat scrollDistance = self.contentInset.top+tableViewContentOffset.y;
+		tableViewContentOffset.y = 0-self.contentInset.top;
 
 		draggedCell.center = CGPointMake(draggedCell.center.x, draggedCell.center.y - scrollDistance);
 
@@ -609,6 +609,7 @@ typedef enum {
 		 */
 
 		CGFloat yOffsetForBottomOfTableViewContent = MAX(0, (self.contentSize.height - self.frame.size.height));
+        yOffsetForBottomOfTableViewContent += self.contentInset.bottom;
 
 		CGFloat scrollDistance = yOffsetForBottomOfTableViewContent - tableViewContentOffset.y;
 		tableViewContentOffset.y = yOffsetForBottomOfTableViewContent;
@@ -767,9 +768,9 @@ typedef enum {
 	/*
 		Prevent it from going above the top.
 	 */
-	if (draggedCell.frame.origin.y <= 0) {
+	if (draggedCell.frame.origin.y <= 0-self.contentInset.top) {
 		CGRect newDraggedCellFrame = draggedCell.frame;
-		newDraggedCellFrame.origin.y = 0;
+		newDraggedCellFrame.origin.y = 0-self.contentInset.top;
 		draggedCell.frame = newDraggedCellFrame;
 
 		/*
@@ -792,6 +793,7 @@ typedef enum {
 		Height of content minus height of cell. Means the bottom of the cell is flush with the bottom of the tableview.
 	 */
 	CGFloat maxYOffsetOfDraggedCell = contentRect.origin.x + contentRect.size.height - draggedCell.frame.size.height;
+    maxYOffsetOfDraggedCell += self.contentInset.bottom;
 
 	if (draggedCell.frame.origin.y >= maxYOffsetOfDraggedCell) {
 		CGRect newDraggedCellFrame = draggedCell.frame;
@@ -1245,10 +1247,10 @@ typedef enum {
 
 - (AutoscrollStatus)locationOfCellGivenSignedAutoscrollDistance:(CGFloat)signedAutoscrollDistance {
 
-	if ( signedAutoscrollDistance < 0 && self.contentOffset.y + signedAutoscrollDistance <= 0 )
+	if ( signedAutoscrollDistance < 0 && self.contentInset.top+self.contentOffset.y + signedAutoscrollDistance <= 0 )
 		return AutoscrollStatusCellAtTop;
 
-	if ( signedAutoscrollDistance > 0 && self.contentOffset.y + signedAutoscrollDistance >= self.contentSize.height - self.frame.size.height )
+	if ( signedAutoscrollDistance > 0 && self.contentOffset.y + signedAutoscrollDistance >= self.contentSize.height - self.frame.size.height + self.contentInset.bottom)
 		return AutoscrollStatusCellAtBottom;
 
 	return AutoscrollStatusCellInBetween;
