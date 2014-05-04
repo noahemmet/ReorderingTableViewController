@@ -19,88 +19,88 @@
 
 
 /*
-
-	Implementation Overview
-
-		Press-and-drag-to-reorder is really just two UIGestureRecognizers
-		working in concert. First a UILongPressGestureRecognizer decides that
-		you're not merely tapping a tableView cell but pressing and holding,
-		then a UIPanGestureRecognizer tracks the touch and moves the touched
-		cell accordingly.
-
-		The cell following the touch is not the original cell highlighted but an
-		imposter. The actual cell is hidden. While the imposter	cell follows the
-		touch, the tableView's dataSource is asked to "move" the hidden cell to
-		follow the imposter, thus "shuffling" the other cells out of the way.
-		
-		This allows us to not have any information about the data model and
-		prevents against data loss due to crashes or interruptions -- at worst,
-		the actual cell is still there, only hidden.
-
-		In addition to dragging a cell, ATSDragToReorderTableViewController will
-		autoscroll when the top or bottom is approached. This is done by a
-		CADisplayLink, which fires just before rendering a frame, every 1/60th
-		of a second. The method it calls will adjust the contentOffset of
-		the tableView and the cell accordingly to move the tableview without
-		moving the visible position of the cell.
-
-
-	A little bit more detail:
-
-		There are 5 main states:
-		Dormant, long press has activated, dragGesture moves cell,
-		autoscroll moves cell, and touch has ended.
-
-
-		-> Dormant
-		
-		Nothing happens until a long press occurs on the UITableView. When
-		that happens, UILongPressGestureRecognizer calls -longPressRecognized.
-
-
-		-> Long press occurs
-		-longPressRecognized
-
-		At that point, conditions are checked to make sure we can legitimately
-		allow dragging. If so, we ask for a cell and set it to self.draggedCell.
-
-
-		-> From here on out, if touch ends…
-		-completeGesturesForTranslationPoint:
-		-fastCompleteGesturesWithTranslationPoint:
-
-		If we release a touch or the app resigns active after this point, the
-		cell slides back to the proper position and the legitimate cell is made
-		visible.
-
-
-		-> meanwhile, if touch moves…
-		-dragGestureRecognized
-
-		UIPanGestureRecognizer calls -dragGestureRecognized whenever any touch
-		movement occurs, but normally short-circuits if self.draggedCell == nil.
-		Now that self.draggedCell is established, the translation data of the
-		UIPanGestureRecognizer is used to update draggedCell’s position.
-
-		After updating the position it checks whether the tableview needs to
-		shuffle cells out of the way of the blank cell and checks whether
-		autoscrolling should begin or end.
-
-
-		-> autoscrolling
-		-fireAutoscrollTimer:
-		
-		Autoscrolling needs to be on a timer because UIPanGestureRecognizer only
-		responds to movement. The timer calculates the distance the tableView
-		should scroll based on proximity of the cell to the tableView bounds and
-		adjusts the tableview and the cell so it appears that the cell doesn't
-		move. It then checks whether the tableview should reorder cells out of
-		the way of the blank cell.
-
-		To clarify, autoscrolling happens simulatneously with
-		UIPanGestureRecognizer. Autoscrolling only moves the cell enough so it
-		looks like it isn't moving. UIPanGestureRecognizer continues to move
-		the cell in response to touch movement.
+ 
+ Implementation Overview
+ 
+ Press-and-drag-to-reorder is really just two UIGestureRecognizers
+ working in concert. First a UILongPressGestureRecognizer decides that
+ you're not merely tapping a tableView cell but pressing and holding,
+ then a UIPanGestureRecognizer tracks the touch and moves the touched
+ cell accordingly.
+ 
+ The cell following the touch is not the original cell highlighted but an
+ imposter. The actual cell is hidden. While the imposter	cell follows the
+ touch, the tableView's dataSource is asked to "move" the hidden cell to
+ follow the imposter, thus "shuffling" the other cells out of the way.
+ 
+ This allows us to not have any information about the data model and
+ prevents against data loss due to crashes or interruptions -- at worst,
+ the actual cell is still there, only hidden.
+ 
+ In addition to dragging a cell, ATSDragToReorderTableViewController will
+ autoscroll when the top or bottom is approached. This is done by a
+ CADisplayLink, which fires just before rendering a frame, every 1/60th
+ of a second. The method it calls will adjust the contentOffset of
+ the tableView and the cell accordingly to move the tableview without
+ moving the visible position of the cell.
+ 
+ 
+ A little bit more detail:
+ 
+ There are 5 main states:
+ Dormant, long press has activated, dragGesture moves cell,
+ autoscroll moves cell, and touch has ended.
+ 
+ 
+ -> Dormant
+ 
+ Nothing happens until a long press occurs on the UITableView. When
+ that happens, UILongPressGestureRecognizer calls -longPressRecognized.
+ 
+ 
+ -> Long press occurs
+ -longPressRecognized
+ 
+ At that point, conditions are checked to make sure we can legitimately
+ allow dragging. If so, we ask for a cell and set it to self.draggedCell.
+ 
+ 
+ -> From here on out, if touch ends…
+ -completeGesturesForTranslationPoint:
+ -fastCompleteGesturesWithTranslationPoint:
+ 
+ If we release a touch or the app resigns active after this point, the
+ cell slides back to the proper position and the legitimate cell is made
+ visible.
+ 
+ 
+ -> meanwhile, if touch moves…
+ -dragGestureRecognized
+ 
+ UIPanGestureRecognizer calls -dragGestureRecognized whenever any touch
+ movement occurs, but normally short-circuits if self.draggedCell == nil.
+ Now that self.draggedCell is established, the translation data of the
+ UIPanGestureRecognizer is used to update draggedCell’s position.
+ 
+ After updating the position it checks whether the tableview needs to
+ shuffle cells out of the way of the blank cell and checks whether
+ autoscrolling should begin or end.
+ 
+ 
+ -> autoscrolling
+ -fireAutoscrollTimer:
+ 
+ Autoscrolling needs to be on a timer because UIPanGestureRecognizer only
+ responds to movement. The timer calculates the distance the tableView
+ should scroll based on proximity of the cell to the tableView bounds and
+ adjusts the tableview and the cell so it appears that the cell doesn't
+ move. It then checks whether the tableview should reorder cells out of
+ the way of the blank cell.
+ 
+ To clarify, autoscrolling happens simulatneously with
+ UIPanGestureRecognizer. Autoscrolling only moves the cell enough so it
+ looks like it isn't moving. UIPanGestureRecognizer continues to move
+ the cell in response to touch movement.
  */
 
 
@@ -158,7 +158,7 @@ typedef enum {
 
 
 - (void)dealloc {
-
+	
 	[[NSNotificationCenter defaultCenter] removeObserver:resignActiveObserver];
 	resignActiveObserver = nil;
 }
@@ -171,7 +171,7 @@ typedef enum {
 	
 	// tableView's dataSource _must_ implement moving rows
 	// bug: calling self.view (or self.tableview) in -init causes -viewDidLoad to be called twice
-//	NSAssert(self.tableView.dataSource && [self.tableView.dataSource respondsToSelector:@selector(tableView:moveRowAtIndexPath:toIndexPath:)], @"tableview's dataSource must implement moving rows");
+	//	NSAssert(self.tableView.dataSource && [self.tableView.dataSource respondsToSelector:@selector(tableView:moveRowAtIndexPath:toIndexPath:)], @"tableview's dataSource must implement moving rows");
 }
 
 
@@ -218,7 +218,7 @@ typedef enum {
     
 	if ( self.reorderingEnabled )
 		[self establishGestures];
-
+	
 	/*
 	 *	If app resigns active while we're dragging, safely complete the drag.
 	 */
@@ -242,7 +242,7 @@ typedef enum {
  */
 - (void)establishGestures {
 	/*URHEREif (self.tableView == nil)
-		return;*/
+	 return;*/
 	
 	if (longPressGestureRecognizer == nil || [self.gestureRecognizers containsObject:longPressGestureRecognizer] == NO) {
 		longPressGestureRecognizer = [[UILongPressGestureRecognizer alloc] initWithTarget:self action:@selector(longPressRecognized)];
@@ -261,7 +261,7 @@ typedef enum {
 	if (dragGestureRecognizer == nil || [self.gestureRecognizers containsObject:dragGestureRecognizer] ) {
 		dragGestureRecognizer = [[UIPanGestureRecognizer alloc] initWithTarget:self action:@selector(dragGestureRecognized)];
 		dragGestureRecognizer.delegate = self;
-
+		
 		[self addGestureRecognizer:dragGestureRecognizer];
 	}
 }
@@ -337,13 +337,13 @@ typedef enum {
 			longPressTouch = touch; // never retain a UITouch
 			veryInitialTouchPoint = [touch locationInView:self];
 		}
-
+		
 		/*
 		 *	Only allow either gesture to receive that longPressTouch
 		 */
 		return ( touch == longPressTouch );
 	}
-
+	
 	return YES;
 }
 
@@ -401,22 +401,22 @@ typedef enum {
 	NSIndexPath *indexPathOfRow = [self anyIndexPathFromLongPressGesture];
 	if ( !indexPathOfRow )
 		return;
-
-
+	
+	
 	/*
 	 *	If touch has moved across the boundaries to act on a different cell than the one selected, use the original selection.
 	 */
 	NSIndexPath *selectedPath = [self indexPathForRowAtPoint:veryInitialTouchPoint];
 	if ( !(indexPathOfRow.section == selectedPath.section && indexPathOfRow.row == selectedPath.row) )
 		indexPathOfRow = selectedPath;
-
+	
 	/*
 	 *	For some other reason the cell isn't highlighed
 	 */
 	UITableViewCell *highlightedCell = [self cellForRowAtIndexPath:indexPathOfRow];
 	if ( ![highlightedCell isHighlighted] )
 		return;
-
+	
 	/*
 	 *	Check to see if the tableView's data source will let us move this cell.
 	 *	Return if the data source says NO.
@@ -427,8 +427,8 @@ typedef enum {
 		if (![self.dataSource tableView:self canMoveRowAtIndexPath:indexPathOfRow])
 			return;
 	}
-
-
+	
+	
 	/*
 	 *	****************************
 	 *	Situtation is good. Go ahead and allow dragGesture.
@@ -436,18 +436,18 @@ typedef enum {
 	 *
 	 *	Establish state and data for dragGesture to work properly
 	 */
-
-
+	
+	
 	[self disableInterferingAspectsOfTableViewAndNavBar];
-
-
+	
+	
 	/*
 	 *	Create a cell to move with finger for drag gesture.
 	 *	This dragged cell is not actually the cell selected, but a copy on on top of the real cell. Actual cell is hidden.
 	 *
 	 *	Important: (draggedCell != nil) is the flag that allows dragGesture to proceed.
 	 */
-
+	
 	/*
 	 *	If -tableView:cellForRowAtIndexPath: (in -cellPreparedToAnimateAroundAtIndexPath) has to create a new cell, the separator style wiil be set to the default.
 	 *	This might cause a distratcting 1 px line at the bottom of the cell if the style is not the default.
@@ -460,15 +460,15 @@ typedef enum {
 	 *
 	 *	Why not just [self.draggedCell setSeparatorStyle:self.tableView.separatorStyle] ourselves? That's a private method.
 	 */
-
-
+	
+	
 	NSIndexPath *indexPathOfSomeOtherRow = [self indexPathOfSomeRowThatIsNotIndexPath:indexPathOfRow];
-
+	
 	if (indexPathOfSomeOtherRow != nil)
 		[self reloadRowsAtIndexPaths:@[indexPathOfSomeOtherRow] withRowAnimation:UITableViewRowAnimationNone];
-
+	
 	self.draggedCell = [self cellPreparedToAnimateAroundAtIndexPath:indexPathOfRow];
-
+	
 	[self.draggedCell setHighlighted:YES animated:NO];
 	[UIView animateWithDuration:0.23 delay:0 options:(UIViewAnimationOptionAllowUserInteraction|UIViewAnimationOptionCurveEaseInOut) animations:^{
 		[self.indicatorDelegate dragTableView:self addDraggableIndicatorsToCell:self.draggedCell forIndexPath:indexPathOfRow];
@@ -479,13 +479,13 @@ typedef enum {
 		 *
 		 *	If it didn't complete, it was likely interrupted by another animation. Don't rasterize the cell on it.
 		 */
-
+		
 		if (finished) {
 			self.draggedCell.layer.rasterizationScale = [[UIScreen mainScreen] scale];
 			self.draggedCell.layer.shouldRasterize = YES;
 		}
 	}];
-
+	
 	/*
 	 *	Save initial y offset so that we can move it with the dragGesture.
 	 *	Drag gesture gives translation data, not so much points relative to screen.
@@ -493,23 +493,23 @@ typedef enum {
 	 *	(would need to save touchIndex for gesture's -locationOfTouch:inView:)
 	 */
 	initialYOffsetOfDraggedCellCenter = self.draggedCell.center.y - self.contentOffset.y;
-
+	
 	/*
 	 *	Set needed threshold to autoscroll to be the distance from the center of the cell to just beyond an edge
 	 *	This way we reflect official drag behavior where it hits maximum speed at the center and starts scrolling just before the edge.
 	 */
 	distanceThresholdToAutoscroll = self.draggedCell.frame.size.height / 2.0 + 6;
-
+	
 	/*
 	 *	Grab index path of selected cell.
 	 *	To be used for moving the blank cell around to create illusion that cells are shuffling out of the way of the draggedCell.
 	 *	And finally, tell the delegate we're going to start dragging
 	 */
 	self.indexPathBelowDraggedCell = indexPathOfRow;
-
+	
 	if ([self.dragDelegate respondsToSelector:@selector(dragTableView:didBeginDraggingAtRow:)])
 		[self.dragDelegate dragTableView:self didBeginDraggingAtRow:indexPathOfRow];
-
+	
 	UIAccessibilityPostNotification(UIAccessibilityAnnouncementNotification, NSLocalizedString(@"Now dragging.", @"Voiceover annoucement"));
 }
 
@@ -529,13 +529,13 @@ typedef enum {
 	 */
 	if ( !self.draggedCell )
 		return;
-
+	
 	/*
 	 *	If dragGesture has ended (finger has lifted), clean up data and put cell "back" into tableview.
 	 *	Otherwise use translation to update position of cell.
 	 */
 	CGPoint translation = [dragGestureRecognizer translationInView:self];
-
+	
 	if (dragGestureRecognizer.state == UIGestureRecognizerStateEnded || dragGestureRecognizer.state == UIGestureRecognizerStateCancelled)
 		[self completeGesturesForTranslationPoint:translation];
 	else
@@ -556,35 +556,35 @@ typedef enum {
 	UITableViewCell *blankCell = [self cellForRowAtIndexPath:self.indexPathBelowDraggedCell];
 	if (blankCell != nil && blankCell.hidden == NO)
 		blankCell.hidden = YES;
-
+	
 	/*****
 	 *
 	 *	Determine how far to autoscroll based on current position.
 	 *
 	 *****/
-
+	
 	// Signed distance has negative values if near the top.
 	CGFloat signedDistance = [self distanceOfCellCenterFromEdge];
-
+	
 	CGFloat absoluteDistance = fabs(signedDistance);
-
+	
 	CGFloat autoscrollDistance = [self autoscrollDistanceForProximityToEdge:absoluteDistance];
 	// negative values means going up
 	if (signedDistance < 0)
 		autoscrollDistance *= -1;
-
-
-
+	
+	
+	
 	/*****
 	 *
 	 *	Move tableView and dragged cell
 	 *
 	 *****/
-
+	
 	AutoscrollStatus autoscrollOption = [self locationOfCellGivenSignedAutoscrollDistance:autoscrollDistance];
-
+	
 	CGPoint tableViewContentOffset = self.contentOffset;
-
+	
 	if ( autoscrollOption == AutoscrollStatusCellAtTop ) {
 		/*
 		 *	In this case, set the tableview content offset y to 0.
@@ -592,9 +592,9 @@ typedef enum {
 		 */
 		CGFloat scrollDistance = self.contentInset.top+tableViewContentOffset.y;
 		tableViewContentOffset.y = 0-self.contentInset.top;
-
+		
 		draggedCell.center = CGPointMake(draggedCell.center.x, draggedCell.center.y - scrollDistance);
-
+		
 		/*
 		 *	Can't move any further up, and if we start moving down it'll create a new timer anyway.
 		 * 	Leave as != nil so we aren't constantly creating and releasing CADisplayLinks.
@@ -607,15 +607,15 @@ typedef enum {
 		 *	Set to 0 if full offset is less than the tableview bounds.
 		 *	Scroll distance is the change in content offset.
 		 */
-
+		
 		CGFloat yOffsetForBottomOfTableViewContent = MAX(0, (self.contentSize.height - self.frame.size.height));
         yOffsetForBottomOfTableViewContent += self.contentInset.bottom;
-
+		
 		CGFloat scrollDistance = yOffsetForBottomOfTableViewContent - tableViewContentOffset.y;
 		tableViewContentOffset.y = yOffsetForBottomOfTableViewContent;
-
+		
 		draggedCell.center = CGPointMake(draggedCell.center.x, draggedCell.center.y + scrollDistance);
-
+		
 		/*
 		 *	Can't move any further down, and if we start moving up it'll create a new timer anyway.
 		 *	Leave as != nil so we aren't constantly creating and releasing CADisplayLinks.
@@ -631,11 +631,11 @@ typedef enum {
 		tableViewContentOffset.y += autoscrollDistance;
 		draggedCell.center = CGPointMake(draggedCell.center.x, draggedCell.center.y + autoscrollDistance);
 	}
-
+	
 	self.contentOffset = tableViewContentOffset;
-
+	
 	[self keepDraggedCellVisible];
-
+	
 	[self shuffleCellsOutOfWayOfDraggedCellIfNeeded];
 }
 
@@ -667,90 +667,90 @@ typedef enum {
 
 
 /*
-	Description:
-		Return a valid indexPath from longPressGesture.
-		There might be multiple touches, some of which aren't actually touching valid indexPath rows.
-		…Though I'm not sure UILongPressGestureRecognizer will ever trigger if there are more than 1 touches.
-		And in any case, how would we know which one UIPanGestureRecognizer is following?
-	Returns:
-		An NSIndexPath of a touched row or nil if none of the touches are on rows.
+ Description:
+ Return a valid indexPath from longPressGesture.
+ There might be multiple touches, some of which aren't actually touching valid indexPath rows.
+ …Though I'm not sure UILongPressGestureRecognizer will ever trigger if there are more than 1 touches.
+ And in any case, how would we know which one UIPanGestureRecognizer is following?
+ Returns:
+ An NSIndexPath of a touched row or nil if none of the touches are on rows.
  */
 - (NSIndexPath *)anyIndexPathFromLongPressGesture {
 	/*
-		Iterate through touches. A little bit roundabout because there's no simple array of points.
+	 Iterate through touches. A little bit roundabout because there's no simple array of points.
 	 */
 	for (NSUInteger pointIndex = 0; pointIndex < [longPressGestureRecognizer numberOfTouches]; ++pointIndex) {
 		CGPoint touchPoint = [longPressGestureRecognizer locationOfTouch:pointIndex inView:self];
-
+		
 		/*
-			See if tableView thinks that point is a real row. If it is, return that.
+		 See if tableView thinks that point is a real row. If it is, return that.
 		 */
 		NSIndexPath *indexPath = [self indexPathForRowAtPoint:touchPoint];
 		if (indexPath != nil)
 			return indexPath;
 	}
-
+	
 	/*
-		No indexPaths were found, return nil.
+	 No indexPaths were found, return nil.
 	 */
 	return nil;
 }
 
 
 /*
-	Description:
-		Create a cell on top of the actual cell at indexPath.
-		Used for creating the illusion that cell is moving independantly of tableView.
-		Needed for use of deleteRowAtIndexPath and insertRowAtIndexPath without affecting moving cell.
-	Parameter:
-		indexPath of cell to replicate.
-	Return:
-		A cell generated by tableView's dataSource without being specifically connected to the tableView.
+ Description:
+ Create a cell on top of the actual cell at indexPath.
+ Used for creating the illusion that cell is moving independantly of tableView.
+ Needed for use of deleteRowAtIndexPath and insertRowAtIndexPath without affecting moving cell.
+ Parameter:
+ indexPath of cell to replicate.
+ Return:
+ A cell generated by tableView's dataSource without being specifically connected to the tableView.
  */
 - (UITableViewCell *)cellPreparedToAnimateAroundAtIndexPath:(NSIndexPath *)indexPath {
 	/*
-		Get a new cell and put it on top of actual cell for that index path.
+	 Get a new cell and put it on top of actual cell for that index path.
 	 */
 	UITableViewCell *cellCopy = [self.dragDelegate cellIdenticalToCellAtIndexPath:indexPath forDragTableView:self];
 	cellCopy.frame = [self rectForRowAtIndexPath:indexPath];
-
+	
 	[self addSubview:cellCopy];
 	[self bringSubviewToFront:cellCopy];
-
+	
 	/*
-		Adjust actual cell so it is blank when cell copy moves off of it
-		Hidden is set back to NO when reused.
+	 Adjust actual cell so it is blank when cell copy moves off of it
+	 Hidden is set back to NO when reused.
 	 */
 	UITableViewCell *actualCell = [self cellForRowAtIndexPath:indexPath];
 	if (actualCell != nil)
 		actualCell.hidden = YES;
-
+	
 	return cellCopy;
 }
 
 /*
-	Description:
-		Gives us some other index path to work around a stupid bug.
-		Perhaps more complicated that it needs to be because we're avoiding assumptions about how the tableview works.
+ Description:
+ Gives us some other index path to work around a stupid bug.
+ Perhaps more complicated that it needs to be because we're avoiding assumptions about how the tableview works.
  */
 - (NSIndexPath *)indexPathOfSomeRowThatIsNotIndexPath:(NSIndexPath *)selectedIndexPath {
 	NSArray *arrayOfVisibleIndexPaths = [self indexPathsForVisibleRows];
-
+	
 	/*
-		if there's only one cell, then return nil.
-		Remember you can't insert nil into an array.
+	 if there's only one cell, then return nil.
+	 Remember you can't insert nil into an array.
 	 */
 	if (arrayOfVisibleIndexPaths.count <= 1)
 		return nil;
-
+	
 	NSIndexPath *indexPathOfSomeOtherRow = [arrayOfVisibleIndexPaths lastObject];
-
+	
 	/*
-		Check if they're the same
+	 Check if they're the same
 	 */
 	if (indexPathOfSomeOtherRow.row == selectedIndexPath.row && indexPathOfSomeOtherRow.section == selectedIndexPath.section)
 		indexPathOfSomeOtherRow = [arrayOfVisibleIndexPaths objectAtIndex:0];
-
+	
 	return indexPathOfSomeOtherRow;
 }
 
@@ -760,109 +760,109 @@ typedef enum {
 
 
 /*
-	Description:
-		Stop the cell from going off tableview content frame. Instead stops flush with top or bottom of tableview.
-		Matches behavior of editing's drag control.
+ Description:
+ Stop the cell from going off tableview content frame. Instead stops flush with top or bottom of tableview.
+ Matches behavior of editing's drag control.
  */
 - (void)keepDraggedCellVisible {
 	/*
-		Prevent it from going above the top.
+	 Prevent it from going above the top.
 	 */
 	if (draggedCell.frame.origin.y <= 0-self.contentInset.top) {
 		CGRect newDraggedCellFrame = draggedCell.frame;
 		newDraggedCellFrame.origin.y = 0-self.contentInset.top;
 		draggedCell.frame = newDraggedCellFrame;
-
+		
 		/*
-			Return early. Flush with the top is exclusive with flush with the bottom, short of odd coincidence.
+		 Return early. Flush with the top is exclusive with flush with the bottom, short of odd coincidence.
 		 */
 		return;
 	}
-
-
+	
+	
 	/*
-		Prevent it from going off the bottom.
-		Make a content rect which is a frame of the entire content.
+	 Prevent it from going off the bottom.
+	 Make a content rect which is a frame of the entire content.
 	 */
 	CGRect contentRect = {
 		.origin = self.contentOffset,
 		.size = self.contentSize
 	};
-
+	
 	/*
-		Height of content minus height of cell. Means the bottom of the cell is flush with the bottom of the tableview.
+	 Height of content minus height of cell. Means the bottom of the cell is flush with the bottom of the tableview.
 	 */
 	CGFloat maxYOffsetOfDraggedCell = contentRect.origin.x + contentRect.size.height - draggedCell.frame.size.height;
     maxYOffsetOfDraggedCell += self.contentInset.bottom;
-
+	
 	if (draggedCell.frame.origin.y >= maxYOffsetOfDraggedCell) {
 		CGRect newDraggedCellFrame = draggedCell.frame;
 		newDraggedCellFrame.origin.y = maxYOffsetOfDraggedCell;
 		draggedCell.frame = newDraggedCellFrame;
 	}
-
+	
 }
 
 /*
-	Description:
-		Set frame for dragged cell based on translation.
-		Translation point is distance from original press down.
-
-		Official drag control keeps the cell's center visible at all times.
+ Description:
+ Set frame for dragged cell based on translation.
+ Translation point is distance from original press down.
+ 
+ Official drag control keeps the cell's center visible at all times.
  */
 - (void)updateFrameOfDraggedCellForTranlationPoint:(CGPoint)translation {
 	CGFloat newYCenter = initialYOffsetOfDraggedCellCenter + translation.y + self.contentOffset.y;
-
+	
 	/*
-		draggedCell.center shouldn't go offscreen.
-		Check that it's at least the contentOffset and no further than the contentoffset plus the contentsize.
+	 draggedCell.center shouldn't go offscreen.
+	 Check that it's at least the contentOffset and no further than the contentoffset plus the contentsize.
 	 */
 	newYCenter = MAX(newYCenter, self.contentOffset.y);
 	newYCenter = MIN(newYCenter, self.contentOffset.y + self.bounds.size.height);
-
+	
 	CGPoint newDraggedCellCenter = {
 		.x = draggedCell.center.x,
 		.y = newYCenter
 	};
-
+	
 	draggedCell.center = newDraggedCellCenter;
-
+	
 	/*
-		Don't let the cell go off of the tableview
+	 Don't let the cell go off of the tableview
 	 */
 	[self keepDraggedCellVisible];
 }
 
 /*
-	Description:
-		Checks if the draggedCell is close to an edge and makes tableView autoscroll or not depending.
+ Description:
+ Checks if the draggedCell is close to an edge and makes tableView autoscroll or not depending.
  */
 - (void)setTableViewToAutoscrollIfNeeded {
 	/*
-		Get absolute distance from edge.
+	 Get absolute distance from edge.
 	 */
 	CGFloat absoluteDistance = [self distanceOfCellCenterFromEdge];
 	if (absoluteDistance < 0)
 		absoluteDistance *= -1;
-
+	
 	/*
-		If cell is close enough, create a timer to autoscroll.
+	 If cell is close enough, create a timer to autoscroll.
 	 */
 	if (absoluteDistance < distanceThresholdToAutoscroll) {
 		/*
-			dragged cell is close to the top or bottom edge, so create an autoscroll timer if needed.
+		 dragged cell is close to the top or bottom edge, so create an autoscroll timer if needed.
 		 */
 		if (self.timerToAutoscroll == nil) {
 			/*
-				Timer is actually a CADisplayLink, which fires everytime Core Animation wants to draw, aka, every frame.
-				Using an NSTimer with 1/60th of a second hurts frame rate because it might update in between drawing and force it to try to draw again.
+			 Timer is actually a CADisplayLink, which fires everytime Core Animation wants to draw, aka, every frame.
+			 Using an NSTimer with 1/60th of a second hurts frame rate because it might update in between drawing and force it to try to draw again.
 			 */
 			self.timerToAutoscroll = [CADisplayLink displayLinkWithTarget:self selector:@selector(fireAutoscrollTimer:)];
 			[self.timerToAutoscroll addToRunLoop:[NSRunLoop mainRunLoop] forMode:NSDefaultRunLoopMode];
 		}
 	} else {
 		/*
-			If we move our cell out of the autoscroll threshold, remove the timer and stop autoscrolling.
+		 If we move our cell out of the autoscroll threshold, remove the timer and stop autoscrolling.
 		 */
 		if (self.timerToAutoscroll != nil) {
 			[timerToAutoscroll invalidate];
@@ -872,55 +872,55 @@ typedef enum {
 }
 
 /*
-	Description:
-		Animates the dragged cell sliding back into the tableview.
-		Tells the data model to update as appropriate.
+ Description:
+ Animates the dragged cell sliding back into the tableview.
+ Tells the data model to update as appropriate.
  */
 - (void)endedDragGestureWithTranslationPoint:(CGPoint)translation {
 	/*
-		Get final frame of cell.
+	 Get final frame of cell.
 	 */
 	[self updateFrameOfDraggedCellForTranlationPoint:translation];
 	/*
-		If the row changes at the last minute, update so we don't put it away in the wrong spot
+	 If the row changes at the last minute, update so we don't put it away in the wrong spot
 	 */
 	[self shuffleCellsOutOfWayOfDraggedCellIfNeeded];
-
+	
 	/*
-		Notify the delegate that we're about to finish
+	 Notify the delegate that we're about to finish
 	 */
 	if ([self.dragDelegate respondsToSelector:@selector(dragTableView:willEndDraggingToRow:)])
 		[self.dragDelegate dragTableView:self willEndDraggingToRow:self.indexPathBelowDraggedCell];
-
-
+	
+	
 	/*
-		Save pointer to dragged cell so we can remove it from superview later. Same with blank item index path.
-		By the time the completion block is called, self.draggedCell == nil, which is proper behavior to prevent overlapping drags or whatnot.
-
-		Probably not necessary to retain, because the superview retains it.
-		But I'm going to be safe, and modifying retainCount is trivial anyway.
+	 Save pointer to dragged cell so we can remove it from superview later. Same with blank item index path.
+	 By the time the completion block is called, self.draggedCell == nil, which is proper behavior to prevent overlapping drags or whatnot.
+	 
+	 Probably not necessary to retain, because the superview retains it.
+	 But I'm going to be safe, and modifying retainCount is trivial anyway.
 	 */
 	UITableViewCell *oldDraggedCell = self.draggedCell;
 	NSIndexPath *blankIndexPath = self.indexPathBelowDraggedCell;
-
+	
 	CGRect rectForIndexPath = [self rectForRowAtIndexPath:self.indexPathBelowDraggedCell];
-
+	
 	BOOL hideDragIndicator = YES;
 	if( [self.dragDelegate respondsToSelector:@selector(dragTableView:shouldHideDraggableIndicatorForDraggingToRow:)] )
 		hideDragIndicator = [self.dragDelegate dragTableView:self shouldHideDraggableIndicatorForDraggingToRow:blankIndexPath];
-
+	
 	/*
 	 Dehighlight the cell while moving it to the expected location for that indexPath's cell.
 	 */
 	self.draggedCell.layer.shouldRasterize = NO;
 	if( hideDragIndicator )
 		[(UITableViewCell *)self.draggedCell setHighlighted:NO animated:YES];
-
+	
 	[UIView animateWithDuration:0.25 delay:0 options:(UIViewAnimationOptionAllowUserInteraction|UIViewAnimationOptionBeginFromCurrentState) animations:^{
 		oldDraggedCell.frame = rectForIndexPath;
-
+		
 		/*
-			Hides the draggable appearance.
+		 Hides the draggable appearance.
 		 */
 		if( hideDragIndicator )
 			[self.indicatorDelegate dragTableView:self hideDraggableIndicatorsOfCell:oldDraggedCell];
@@ -929,62 +929,62 @@ typedef enum {
 		 Update tableView to show the real cell. Reload to reflect any changes caused by dragDelegate.
 		 */
 		[self reloadRowsAtIndexPaths:[NSArray arrayWithObject:blankIndexPath] withRowAnimation:UITableViewRowAnimationNone];
-
+		
 		/*
 		 Removes the draggable appearance so cell can be reused.
 		 */
 		[self.indicatorDelegate dragTableView:self removeDraggableIndicatorsFromCell:oldDraggedCell];
-
+		
 		[oldDraggedCell removeFromSuperview];
-
+		
 		if( [self.dragDelegate respondsToSelector:@selector(dragTableView:didEndDraggingToRow:)] )
 			[self.dragDelegate dragTableView:self didEndDraggingToRow:blankIndexPath];
-
+		
 		UIAccessibilityPostNotification(UIAccessibilityAnnouncementNotification, NSLocalizedString(@"Drag completed.", @"Voiceover annoucement"));
 	}];
-
+	
 	/*
-		If the cell is at the top or bottom of the view, bring that location visible.
+	 If the cell is at the top or bottom of the view, bring that location visible.
 	 */
 	[self scrollRectToVisible:rectForIndexPath animated:YES];
 }
 
 
 /*
-	Description:
-		Cleanup and complete data from gestures.
-		Do the same thing as -completeGesturesForTranslationPoint:, but for when we can't wait for animations.
-		Largely copied from -endedDragGestureWithTranslationPoint:
+ Description:
+ Cleanup and complete data from gestures.
+ Do the same thing as -completeGesturesForTranslationPoint:, but for when we can't wait for animations.
+ Largely copied from -endedDragGestureWithTranslationPoint:
  */
 - (void)fastCompleteGesturesWithTranslationPoint:(CGPoint) translation {
 	[self updateFrameOfDraggedCellForTranlationPoint:translation];
 	/*
-		If it happens to change at the last minute we don't put it away in the wrong spot
+	 If it happens to change at the last minute we don't put it away in the wrong spot
 	 */
 	[self shuffleCellsOutOfWayOfDraggedCellIfNeeded];
-
+	
 	/*
-		Reset tableView and delegate back to normal
+	 Reset tableView and delegate back to normal
 	 */
 	if ([self.dragDelegate respondsToSelector:@selector(dragTableView:willEndDraggingToRow:)])
 		[self.dragDelegate dragTableView:self willEndDraggingToRow:self.indexPathBelowDraggedCell];
-
+	
 	[self reloadRowsAtIndexPaths:[NSArray arrayWithObject:self.indexPathBelowDraggedCell] withRowAnimation:UITableViewRowAnimationNone];
-
+	
 	/*
-		Revert dragged cell selection color to normal
+	 Revert dragged cell selection color to normal
 	 */
 	self.draggedCell.layer.shouldRasterize = NO;
-
+	
 	[self.indicatorDelegate dragTableView:self removeDraggableIndicatorsFromCell:self.draggedCell];
-
+	
 	[self.draggedCell removeFromSuperview];
     
     if( [self.dragDelegate respondsToSelector:@selector(dragTableView:didEndDraggingToRow:)] )
         [self.dragDelegate dragTableView:self didEndDraggingToRow:self.indexPathBelowDraggedCell];
-
+	
 	/*
-		Remaining cleanup.
+	 Remaining cleanup.
 	 */
 	[self resetDragIVars];
 	[self resetTableViewAndNavBarToTypical];
@@ -992,117 +992,117 @@ typedef enum {
 
 
 /*
-	Description:
-		Should be called when gestures have ended.
-		Cleanup ivars and return tableView to former state.
+ Description:
+ Should be called when gestures have ended.
+ Cleanup ivars and return tableView to former state.
  */
 - (void)completeGesturesForTranslationPoint:(CGPoint)translation {
 	/*
-		Put dragged cell back into proper place.
-		Should probably short circuit if translation.y is zero.
+	 Put dragged cell back into proper place.
+	 Should probably short circuit if translation.y is zero.
 	 */
 	[self endedDragGestureWithTranslationPoint:translation];
-
+	
 	/*
-		Make certain everything is released and nil'ed for next press and drag gesture.
+	 Make certain everything is released and nil'ed for next press and drag gesture.
 	 */
 	[self resetDragIVars];
 	[self resetTableViewAndNavBarToTypical];
-
+	
 }
 
 
 /*
-	Description:
-		If necessary, move blank cell so that it appears that the tableview's cells are shuffling out of the way of the draggedCell
+ Description:
+ If necessary, move blank cell so that it appears that the tableview's cells are shuffling out of the way of the draggedCell
  */
 - (void)shuffleCellsOutOfWayOfDraggedCellIfNeeded {
 	/*
-		This used to be easy until we started dealing with variable row sizes.
-
-		Now we compare the dragged cell's center with the center of the whole covered rect to determine whether to shuffle.
+	 This used to be easy until we started dealing with variable row sizes.
+	 
+	 Now we compare the dragged cell's center with the center of the whole covered rect to determine whether to shuffle.
 	 */
 	NSArray *arrayOfCoveredIndexPaths = [self indexPathsForRowsInRect:self.draggedCell.frame];
-
+	
 	/*
-		Use blank rect instead of the cell itself. The cell might be offscreen and thus nil.
-		Blank cell might not be covered either, if the dragged cell is smaller than the nearby cell.
+	 Use blank rect instead of the cell itself. The cell might be offscreen and thus nil.
+	 Blank cell might not be covered either, if the dragged cell is smaller than the nearby cell.
 	 */
 	CGRect blankCellFrame = [self rectForRowAtIndexPath:self.indexPathBelowDraggedCell];
 	CGPoint blankCellCenter = {
 		.x = CGRectGetMidX(blankCellFrame),
 		.y = CGRectGetMidY(blankCellFrame)
 	};
-
+	
 	CGRect rectOfCoveredCells = blankCellFrame;
 	for (NSIndexPath *row in arrayOfCoveredIndexPaths) {
 		CGRect newRect = CGRectUnion(rectOfCoveredCells, [self rectForRowAtIndexPath:row]);
 		rectOfCoveredCells = newRect;
 	}
-
+	
 	/*
-		nil unless we actually are going to move cells.
+	 nil unless we actually are going to move cells.
 	 */
 	NSIndexPath *rowToMoveTo = nil;
-
+	
 	/*
-		So we've ended up with a rect of all the covered cells.
-		Compare its center with the dragged cell to determine whether the dragged cell is approaching the top or bottom.
+	 So we've ended up with a rect of all the covered cells.
+	 Compare its center with the dragged cell to determine whether the dragged cell is approaching the top or bottom.
 	 */
 	if (draggedCell.center.y < CGRectGetMidY(rectOfCoveredCells)) {
 		/*
-			Dragged cell is in the upper portion.
+		 Dragged cell is in the upper portion.
 		 */
-
+		
 		CGRect upperHalf = {
 			.origin = rectOfCoveredCells.origin,
 			.size.width = rectOfCoveredCells.size.width,
 			.size.height = rectOfCoveredCells.size.height / 2
 		};
-
+		
 		/*
-			If upper portion does not contain blank index path, mark that it should
+		 If upper portion does not contain blank index path, mark that it should
 		 */
 		if (!CGRectContainsPoint(upperHalf, blankCellCenter)) {
 			/*
-				Get the row before the blank cell
+			 Get the row before the blank cell
 			 */
 			NSUInteger blankCellIndex = [arrayOfCoveredIndexPaths indexOfObject:self.indexPathBelowDraggedCell];
-
+			
 			if (blankCellIndex != NSNotFound && blankCellIndex != 0 && (blankCellIndex - 1) > 0)
 				rowToMoveTo = [arrayOfCoveredIndexPaths objectAtIndex:(blankCellIndex - 1)];
 			else if (arrayOfCoveredIndexPaths.count > 0)
 				rowToMoveTo = [arrayOfCoveredIndexPaths objectAtIndex:0];
 		}
-
+		
 	} else {
 		/*
-			Dragged cell is in lower portion
+		 Dragged cell is in lower portion
 		 */
-
+		
 		CGRect lowerHalf ={
 			.origin.x = rectOfCoveredCells.origin.x,
 			.origin.y = rectOfCoveredCells.origin.y + rectOfCoveredCells.size.height / 2,
 			.size.width = rectOfCoveredCells.size.width,
 			.size.height = rectOfCoveredCells.size.height / 2
 		};
-
+		
 		/*
-			If lower portion does not contain the blank index path, mark that it should
+		 If lower portion does not contain the blank index path, mark that it should
 		 */
 		if (!CGRectContainsPoint(lowerHalf, blankCellCenter)) {
 			/*
-				Get the row after the blank cell
+			 Get the row after the blank cell
 			 */
 			NSUInteger blankCellIndex = [arrayOfCoveredIndexPaths indexOfObject:self.indexPathBelowDraggedCell];
-
+			
 			if (blankCellIndex != NSNotFound && (blankCellIndex + 1) < arrayOfCoveredIndexPaths.count)
 				rowToMoveTo = [arrayOfCoveredIndexPaths objectAtIndex:(blankCellIndex + 1)];
 			else
 				rowToMoveTo = [arrayOfCoveredIndexPaths lastObject];
 		}
 	}
-
+	
     if (rowToMoveTo != nil)
     {
         // Check with the delegate to ensure that this destination row is valid, and get another one if necessary.
@@ -1110,24 +1110,24 @@ typedef enum {
         if ([self.delegate respondsToSelector:@selector(tableView:targetIndexPathForMoveFromRowAtIndexPath:toProposedIndexPath:)]) {
             rowToMoveTo = [self.delegate tableView:self targetIndexPathForMoveFromRowAtIndexPath:self.indexPathBelowDraggedCell toProposedIndexPath:rowToMoveTo];
         }
-
+		
         /*
-            If the dragged cell is covering a new row that isn't the one with the blank item, move the blank item to that new row.
+		 If the dragged cell is covering a new row that isn't the one with the blank item, move the blank item to that new row.
          */
         if (rowToMoveTo != nil && !(rowToMoveTo.section == self.indexPathBelowDraggedCell.section && rowToMoveTo.row == self.indexPathBelowDraggedCell.row)) {
             /*
-                Tableview's dataSource must update before we ask the tableview to update rows.
+			 Tableview's dataSource must update before we ask the tableview to update rows.
              */
             [self.dataSource tableView:self moveRowAtIndexPath:self.indexPathBelowDraggedCell toIndexPath:rowToMoveTo];
-
+			
             /*
-                Update the blank index path
+			 Update the blank index path
              */
             NSIndexPath *formerBlankIndexPath = self.indexPathBelowDraggedCell;
             self.indexPathBelowDraggedCell = rowToMoveTo;
-
+			
             /*
-                Then animate the row updates.
+			 Then animate the row updates.
              */
             if ( [self respondsToSelector:@selector(moveRowAtIndexPath:toIndexPath:)] )
                 [self moveRowAtIndexPath:formerBlankIndexPath toIndexPath:rowToMoveTo];
@@ -1137,28 +1137,28 @@ typedef enum {
                 [self insertRowsAtIndexPaths:[NSArray arrayWithObject:self.indexPathBelowDraggedCell] withRowAnimation:UITableViewRowAnimationNone];
                 [self endUpdates];
             }
-
-
+			
+			
             /*
-                Keep the cell under the dragged cell hidden.
-                This is a crucial line of code. Otherwise we get all kinds of graphical weirdness
+			 Keep the cell under the dragged cell hidden.
+			 This is a crucial line of code. Otherwise we get all kinds of graphical weirdness
              */
             UITableViewCell *cellToHide = [self cellForRowAtIndexPath:self.indexPathBelowDraggedCell];
             cellToHide.hidden = YES;
-
+			
         }
     }
 }
 
 
 /*
-	Description:
-		Update the dragged cell to its new position and updates the tableView to shuffle cells out of the way.
+ Description:
+ Update the dragged cell to its new position and updates the tableView to shuffle cells out of the way.
  */
 - (void)updateDraggedCellWithTranslationPoint:(CGPoint)translation {
 	/*
-		Set new frame of dragged cell,
-		then use this new frame to check if the tableview needs to autoscroll or shuffle cells out of the way or both.
+	 Set new frame of dragged cell,
+	 then use this new frame to check if the tableview needs to autoscroll or shuffle cells out of the way or both.
 	 */
 	[self updateFrameOfDraggedCellForTranlationPoint:translation];
 	[self setTableViewToAutoscrollIfNeeded];
@@ -1170,16 +1170,16 @@ typedef enum {
 #pragma mark fireAutoscrollTimer helper methods
 
 /*
-	Description:
-		Calculates how far from the top or bottom edge of the tableview the cell's visible center is.
-	Returns:
-		A positive number if close to the bottom, negative if close to top.
-		Will not return zero.
+ Description:
+ Calculates how far from the top or bottom edge of the tableview the cell's visible center is.
+ Returns:
+ A positive number if close to the bottom, negative if close to top.
+ Will not return zero.
  */
 - (CGFloat)distanceOfCellCenterFromEdge {
-
+	
 	/*
-		Use translation data to get absolute position of touch insted of cell. Cell is bound by tableview content offset and contentsize, touch is not.
+	 Use translation data to get absolute position of touch insted of cell. Cell is bound by tableview content offset and contentsize, touch is not.
 	 */
 	CGPoint translation = [dragGestureRecognizer translationInView:self];
 	
@@ -1189,52 +1189,52 @@ typedef enum {
 	
 	if (yOffsetOfDraggedCellCenter > heightOfTableView/2.0) {
 		/*
-			The subtraction from the height is to make it faster to autoscroll down.
-			Scrolling up is easy because there's a navigation bar to cover. No such luck when scrolling down.
-			So the "bottom" of the tableView is considered to be higher than it is.
-
-			Todo: make this more generic by checking for existance of toolbar or navbar, but even that might not be generic enough.
-			Could check position in UIWindow, perhaps.
+		 The subtraction from the height is to make it faster to autoscroll down.
+		 Scrolling up is easy because there's a navigation bar to cover. No such luck when scrolling down.
+		 So the "bottom" of the tableView is considered to be higher than it is.
+		 
+		 Todo: make this more generic by checking for existance of toolbar or navbar, but even that might not be generic enough.
+		 Could check position in UIWindow, perhaps.
 		 */
-
+		
 		/*
-			Return positive because going down.
+		 Return positive because going down.
 		 */
 		CGFloat paddingAgainstBottom = 8.0;
-
+		
 		return MAX((1.0 / [UIScreen mainScreen].scale), (heightOfTableView - paddingAgainstBottom) - yOffsetOfDraggedCellCenter);
 	} else
-		/*
-			Return negative because going up.
-		 */
+	/*
+	 Return negative because going up.
+	 */
 		return -1 * MAX((1.0 / [UIScreen mainScreen].scale), yOffsetOfDraggedCellCenter);
 }
 
 
 
 /*
-	Description:
-		Figures out how much to scroll the tableView depending on how close it is to the edge.
-	Parameter:
-		The distance
-	Returns:
-		Distance in pixels to move the tableView. None of this velocity stuff.
+ Description:
+ Figures out how much to scroll the tableView depending on how close it is to the edge.
+ Parameter:
+ The distance
+ Returns:
+ Distance in pixels to move the tableView. None of this velocity stuff.
  */
 - (CGFloat)autoscrollDistanceForProximityToEdge:(CGFloat)proximity {
     /*
-		To scroll more smoothly on Retina Displays, we multiply by scale, ceilf the result, and then divide by scale again.
-		This will allow us to round to 0.5 pixel increments on retina displays instead of rounding up to 1.0.
+	 To scroll more smoothly on Retina Displays, we multiply by scale, ceilf the result, and then divide by scale again.
+	 This will allow us to round to 0.5 pixel increments on retina displays instead of rounding up to 1.0.
 	 */
 	/*
-		To support variable row heights. We want speed at the center of a cell to be the same no matter what size cell it is.
-		Mimics behavior of built-in drag control.
-
-		Higher max distance traveled means faster autoscrolling.
+	 To support variable row heights. We want speed at the center of a cell to be the same no matter what size cell it is.
+	 Mimics behavior of built-in drag control.
+	 
+	 Higher max distance traveled means faster autoscrolling.
 	 */
     CGFloat maxAutoscrollDistance = 5.0;
     if ( [[UIDevice currentDevice] userInterfaceIdiom] == UIUserInterfaceIdiomPad )
         maxAutoscrollDistance = 9.0;
-
+	
 #if CGFLOAT_IS_DOUBLE
 	return ceil((distanceThresholdToAutoscroll - proximity)/distanceThresholdToAutoscroll * maxAutoscrollDistance * [UIScreen mainScreen].scale) / [UIScreen mainScreen].scale;
 #else
@@ -1246,15 +1246,15 @@ typedef enum {
 
 
 - (AutoscrollStatus)locationOfCellGivenSignedAutoscrollDistance:(CGFloat)signedAutoscrollDistance {
-
+	
 	if ( signedAutoscrollDistance < 0 && self.contentInset.top+self.contentOffset.y + signedAutoscrollDistance <= 0 )
 		return AutoscrollStatusCellAtTop;
-
+	
 	if ( signedAutoscrollDistance > 0 && self.contentOffset.y + signedAutoscrollDistance >= self.contentSize.height - self.frame.size.height + self.contentInset.bottom)
 		return AutoscrollStatusCellAtBottom;
-
+	
 	return AutoscrollStatusCellInBetween;
-
+	
 }
 
 
@@ -1264,54 +1264,54 @@ typedef enum {
 
 
 /*
-	Description:
-		Disable or enable status bar and nav bar elements.
-	Parameter:
-		new enabled state.
+ Description:
+ Disable or enable status bar and nav bar elements.
+ Parameter:
+ new enabled state.
  */
 - (void)setInterferingElementsToEnabled:(BOOL)enabled {
 	/*
-		Enable or disable navigation controller elements.
+	 Enable or disable navigation controller elements.
 	 */
 	/*URHEREif (self.navigationController != nil) {
-		self.navigationController.navigationBar.userInteractionEnabled = enabled;
-		self.navigationController.toolbar.userInteractionEnabled = enabled;
-	}*/
-
+	 self.navigationController.navigationBar.userInteractionEnabled = enabled;
+	 self.navigationController.toolbar.userInteractionEnabled = enabled;
+	 }*/
+	
 	/*
-		Disable or enable tab bar.
-		Might throw an exception, according to the documentation. I seriously doubt it, though.
+	 Disable or enable tab bar.
+	 Might throw an exception, according to the documentation. I seriously doubt it, though.
 	 */
 	/*URHEREif (self.tabBarController != nil)
-		self.tabBarController.tabBar.userInteractionEnabled = enabled;*/
-
+	 self.tabBarController.tabBar.userInteractionEnabled = enabled;*/
+	
 	/*
-		No reason we couldn't scroll to top while dragging but that involves math and let's just not make this any more confusing.
+	 No reason we couldn't scroll to top while dragging but that involves math and let's just not make this any more confusing.
 	 */
 	self.scrollsToTop = enabled;
 }
 
 
 /*
-	Description:
-		Allows normal operation of tableView and navigation.
-		Should only be called when dragged item has been place back into the data model.
+ Description:
+ Allows normal operation of tableView and navigation.
+ Should only be called when dragged item has been place back into the data model.
  */
 - (void)resetTableViewAndNavBarToTypical {
 	[self setInterferingElementsToEnabled:YES];
-
+	
 	/*
-		Counterpart near the start of -longPressRecognized
+	 Counterpart near the start of -longPressRecognized
 	 */
 	self.allowsSelection = YES;
-
+	
 }
 
 
 /*
-	Description:
-		Prevent against status bar and nav bar button presses while dragging.
-		Nav bar buttons in particular could delete dragged item because it isn't placed back into the data model.
+ Description:
+ Prevent against status bar and nav bar button presses while dragging.
+ Nav bar buttons in particular could delete dragged item because it isn't placed back into the data model.
  */
 - (void)disableInterferingAspectsOfTableViewAndNavBar {
 	[self setInterferingElementsToEnabled:NO];
@@ -1319,7 +1319,7 @@ typedef enum {
 
 
 /*
-	Reset ivars used by dragGesture and longPressGesture.
+ Reset ivars used by dragGesture and longPressGesture.
  */
 - (void)resetDragIVars {
 	self.draggedCell = nil;
@@ -1335,15 +1335,15 @@ typedef enum {
 
 
 /*
-	Description:
-		Creates a view that contains a shadow and clips the parts we don't want out.
-		Helper function for -addShadowViewsToCell:
+ Description:
+ Creates a view that contains a shadow and clips the parts we don't want out.
+ Helper function for -addShadowViewsToCell:
  */
 - (UIView *)shadowViewWithFrame:(CGRect)frame andShadowPath:(CGPathRef)shadowPath {
 	UIView *shadowView = [[UIView alloc] initWithFrame:frame];
-
+	
 	/*
-		Shadow attributes common to both views.
+	 Shadow attributes common to both views.
 	 */
 	CGFloat commonShadowOpacity = 0.8;
 	CGSize commonShadowOffset = {
@@ -1351,71 +1351,71 @@ typedef enum {
 		.height = 1
 	};
 	CGFloat commonShadowRadius = 4;
-
+	
 	/*
-		The whole point of the shadow view is that it clips the shadow to hide the part of the shadow that appears under the cell.
-		Thus it's invisible and it clips to bounds.
+	 The whole point of the shadow view is that it clips the shadow to hide the part of the shadow that appears under the cell.
+	 Thus it's invisible and it clips to bounds.
 	 */
 	shadowView.backgroundColor = [UIColor clearColor];
 	shadowView.opaque = NO;
 	shadowView.clipsToBounds = YES;
-
+	
 	/*
-		Set shadow attributes to the layer
+	 Set shadow attributes to the layer
 	 */
 	shadowView.layer.shadowPath = shadowPath;
 	shadowView.layer.shadowOpacity = commonShadowOpacity;
 	shadowView.layer.shadowOffset = commonShadowOffset;
 	shadowView.layer.shadowRadius = commonShadowRadius;
-
+	
 	return shadowView;
 }
 
 
 /*
-	Description:
-		Adds shadows to the cell to give it an appearance of being raised off the tableview.
-	Note:
-		Will add subviews for clipping the shadows. This code was written with transparent selectedBackgroundViews in mind.
-		Subviews have tags #defined at top of file
-	Parameter:
-		a cell with a non-nil selectedBackgroundView
-	Returns:
-		An array of the added shadowViews.
-		Top shadow is index 0, bottom shadow is index 1.
-		Returns nil if not successful.
+ Description:
+ Adds shadows to the cell to give it an appearance of being raised off the tableview.
+ Note:
+ Will add subviews for clipping the shadows. This code was written with transparent selectedBackgroundViews in mind.
+ Subviews have tags #defined at top of file
+ Parameter:
+ a cell with a non-nil selectedBackgroundView
+ Returns:
+ An array of the added shadowViews.
+ Top shadow is index 0, bottom shadow is index 1.
+ Returns nil if not successful.
  */
 - (NSArray *)addShadowViewsToCell:(UITableViewCell *)selectedCell {
 	/*
-		We're going to create shadow paths, which is the rect of the cell.
-		Then we'll create two views on top and bottom of the cell that clip to bounds.
-
-		We're really going to use the same shadow (a shadow the size of the cell itself) represented in two different views.
+	 We're going to create shadow paths, which is the rect of the cell.
+	 Then we'll create two views on top and bottom of the cell that clip to bounds.
+	 
+	 We're really going to use the same shadow (a shadow the size of the cell itself) represented in two different views.
 	 */
-
+	
 	/*
-		If selectedBackgroundView is nil, return.
+	 If selectedBackgroundView is nil, return.
 	 */
 	if (selectedCell.selectedBackgroundView == nil)
 		return nil;
-
+	
 	/*
-		Rects for views.
-
-		Rects are in "offscreen" space. They'll be subviews of cells but outside it.
-		These views are to prevent the shadow from appearing under the cell.
-
-		ShadowPath rects have to be defined from the shadow views' prespectives. This is kinda annoying.
-
-		I suspect a better approach would use -convertRect:fromView: to convert a common shadowpath rect to the shadowViews, but I already wrote this, and it works fine.
+	 Rects for views.
+	 
+	 Rects are in "offscreen" space. They'll be subviews of cells but outside it.
+	 These views are to prevent the shadow from appearing under the cell.
+	 
+	 ShadowPath rects have to be defined from the shadow views' prespectives. This is kinda annoying.
+	 
+	 I suspect a better approach would use -convertRect:fromView: to convert a common shadowpath rect to the shadowViews, but I already wrote this, and it works fine.
 	 */
-
+	
 	CGFloat heightOfViews = 10; // make it enough space to show whole shadow
 	CGRect shadowPathFrame = selectedCell.selectedBackgroundView.frame;
-
-
+	
+	
 	/*
-		aboveShadowView rects
+	 aboveShadowView rects
 	 */
 	CGRect aboveShadowViewFrame = {
 		.origin.x = 0,
@@ -1423,21 +1423,21 @@ typedef enum {
 		.size.width = shadowPathFrame.size.width,
 		.size.height = heightOfViews
 	};
-
+	
 	/*
-		Shadow path is offset back down, has the size of the cell.
+	 Shadow path is offset back down, has the size of the cell.
 	 */
 	CGRect shadowPathRectFromAbovePerspective = {
 		.origin.x = 0,
 		.origin.y = -aboveShadowViewFrame.origin.y,
 		.size = shadowPathFrame.size
 	};
-
+	
 	UIBezierPath *aboveShadowPath = [UIBezierPath bezierPathWithRect:shadowPathRectFromAbovePerspective];
-
-
+	
+	
 	/*
-		belowShadowView rects
+	 belowShadowView rects
 	 */
 	CGRect belowShadowViewFrame = {
 		.origin.x = 0,
@@ -1445,69 +1445,69 @@ typedef enum {
 		.size.width = shadowPathFrame.size.width,
 		.size.height = heightOfViews
 	};
-
+	
 	/*
-		Shadow path is offset back up, has the size of the cell
+	 Shadow path is offset back up, has the size of the cell
 	 */
 	CGRect shadowPathRectFromBelowPerspective = {
 		.origin.x = 0,
 		.origin.y = -belowShadowViewFrame.origin.y,
 		.size = shadowPathFrame.size
 	};
-
+	
 	UIBezierPath *belowShadowPath = [UIBezierPath bezierPathWithRect:shadowPathRectFromBelowPerspective];
-
-
+	
+	
 	/*
-		Make views. Add a tag so we can manipulate and remove them later.
+	 Make views. Add a tag so we can manipulate and remove them later.
 	 */
 	UIView *aboveShadowView = [self shadowViewWithFrame:aboveShadowViewFrame andShadowPath:aboveShadowPath.CGPath];
 	aboveShadowView.tag = TAG_FOR_ABOVE_SHADOW_VIEW_WHEN_DRAGGING;
 	aboveShadowView.alpha = 0; // set to 0 before adding as subview
-
+	
 	UIView *belowShadowView = [self shadowViewWithFrame:belowShadowViewFrame andShadowPath:belowShadowPath.CGPath];
 	belowShadowView.tag = TAG_FOR_BELOW_SHADOW_VIEW_WHEN_DRAGGING;
 	belowShadowView.alpha = 0;
-
+	
 	/*
-		Add them to the cell itself.
-		This way they're above the separator style view.
+	 Add them to the cell itself.
+	 This way they're above the separator style view.
 	 */
 	[selectedCell addSubview:aboveShadowView];
 	[selectedCell addSubview:belowShadowView];
 	[selectedCell bringSubviewToFront:belowShadowView];
-
+	
 	return [NSArray arrayWithObjects:aboveShadowView, belowShadowView, nil];
 }
 
 
 /*
-	Description:
-		Makes a cell appear draggable.
-			Adds shadows,
-			Bumps up the alpha of the selectedBackgroundView
-	Parameters:
-		cell -- Almost certainly will be self.draggedCell
-		indexPath -- path of cell, provided for subclasses
+ Description:
+ Makes a cell appear draggable.
+ Adds shadows,
+ Bumps up the alpha of the selectedBackgroundView
+ Parameters:
+ cell -- Almost certainly will be self.draggedCell
+ indexPath -- path of cell, provided for subclasses
  */
 - (void)dragTableView:(ATSDragToReorderTableView *)dragTableView addDraggableIndicatorsToCell:(UITableViewCell *)cell forIndexPath:(NSIndexPath *)indexPath {
-
-	 NSArray *arrayOfShadowViews = [self addShadowViewsToCell:cell];
-
+	
+	NSArray *arrayOfShadowViews = [self addShadowViewsToCell:cell];
+	
 	for (UIView *shadowView in arrayOfShadowViews)
 		shadowView.alpha = 1;
 }
 
 
 /*
-	Description:
-		 Sets the draggable indicators to alpha = 0, effectively.
-		 Intented to be used in an animation block.
-	
-		 cell.layer.shouldRasterize is expected to be NO before this method is called.
-		 Doesn't actually remove the draggable changes (that is, the shadow views). Thus, expectation is -removeDraggableIndicatorsFromCell: is called when animation is completed.
-		 
-		 If you don't want to animate, just use -removeDraggableIndicatorsFromCell: directly.
+ Description:
+ Sets the draggable indicators to alpha = 0, effectively.
+ Intented to be used in an animation block.
+ 
+ cell.layer.shouldRasterize is expected to be NO before this method is called.
+ Doesn't actually remove the draggable changes (that is, the shadow views). Thus, expectation is -removeDraggableIndicatorsFromCell: is called when animation is completed.
+ 
+ If you don't want to animate, just use -removeDraggableIndicatorsFromCell: directly.
  */
 - (void)dragTableView:(ATSDragToReorderTableView *)dragTableView hideDraggableIndicatorsOfCell:(UITableViewCell *)cell {
 	UIView *aboveShadowView = [cell viewWithTag:TAG_FOR_ABOVE_SHADOW_VIEW_WHEN_DRAGGING];
@@ -1519,11 +1519,11 @@ typedef enum {
 
 
 /*
-	Description:
-		Removes all draggable indicators from the cell.
-		Cell should be perfectly safe for reuse when this is complete.
+ Description:
+ Removes all draggable indicators from the cell.
+ Cell should be perfectly safe for reuse when this is complete.
  
-		not meant to be animated. Use -hideDraggableIndicatorsOfCell: for that and call this in the animation's completion block.
+ not meant to be animated. Use -hideDraggableIndicatorsOfCell: for that and call this in the animation's completion block.
  */
 - (void)dragTableView:(ATSDragToReorderTableView *)dragTableView removeDraggableIndicatorsFromCell:(UITableViewCell *)cell {
 	UIView *aboveShadowView = [cell viewWithTag:TAG_FOR_ABOVE_SHADOW_VIEW_WHEN_DRAGGING];

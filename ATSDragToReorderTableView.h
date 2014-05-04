@@ -19,70 +19,70 @@
 
 
 /*
-
-	Interface Overview:
-
-		ATSDragToReorderTableViewController is a UITableViewController subclass
-		that incorporates a press-and-drag-to-reorder functionality into the
-		tableView.
-
-		Because it subclasses from UITableViewController, you can use existing
-		classes that subclass from UITableViewController and subclass from
-		ATSDragToReorderTableViewController instead. You only need to make a few
-		changes (listed below).
-
-		ATSDragToReorderTableViewControllerDelegate notifies upon change in
-		dragging state. This could be useful if the destination or source of the
-		reorder	could change the content of the cell.
-
-		ATSDragToReorderTableViewControllerDraggableIndicators defines how to
-		customize the dragged cell to make it appear more "draggable". By
-		default this indicatorDelegate is self and the default implementation
-		adds shadows above and below the cell.
-
-		Requires iOS 4.0 or greater.
-
-
-	Steps for use:
-
-		0. If you aren't already, link against the QuartzCore framework.
-		In Xcode 3.2, right-click the group tree (sidebar thingy),
-		Add -> Existing Frameworks… -> QuartzCore.framework
-		In Xcode 4.0, go to the project file -> Build Phases and add to
-		Link Binary With Libraries.
-
-		1. Subclass from this instead of UITableViewController
-
-		2. UITableViewDataSource (almost certainly your subclass) should
- 		implement -tableView:moveRowAtIndexPath:toIndexPath:
-
-
-	Other recommendations:
-
-		It is recommended that the tableView's dataSource -setReorderingEnabled:
-		to NO if there is only one row.
-
-		Rotation while dragging a cell is screwy and it's not clear to me how to
-		handle that situation. For now, recommendation is to not allow rotations
-		while dragging, maybe not at all.
-
-
-	Assumptions made by this code:
-
-		Subclass doesn't conform to UIGestureRecognizerDelegate. If it does,
-		you're going to have to figure out how to orchastrate it all. It's
-		likely not that difficult.
-
-		self.tableView is of type UITableViewStylePlain. It will technically
-		work with UITableViewStyleGrouped but it'll look ugly.
-
-		This code totally ignores self.tableView.delegate's
-		-tableView:targetIndexPathForMoveFromRowAtIndexPath:toProposedIndexPath:
-		I have no idea what I would do with that.
-
-		The tableview's contents won't change while dragging. I'm pretty sure if
-		you do this, it will crash.
-
+ 
+ Interface Overview:
+ 
+ ATSDragToReorderTableViewController is a UITableViewController subclass
+ that incorporates a press-and-drag-to-reorder functionality into the
+ tableView.
+ 
+ Because it subclasses from UITableViewController, you can use existing
+ classes that subclass from UITableViewController and subclass from
+ ATSDragToReorderTableViewController instead. You only need to make a few
+ changes (listed below).
+ 
+ ATSDragToReorderTableViewControllerDelegate notifies upon change in
+ dragging state. This could be useful if the destination or source of the
+ reorder	could change the content of the cell.
+ 
+ ATSDragToReorderTableViewControllerDraggableIndicators defines how to
+ customize the dragged cell to make it appear more "draggable". By
+ default this indicatorDelegate is self and the default implementation
+ adds shadows above and below the cell.
+ 
+ Requires iOS 4.0 or greater.
+ 
+ 
+ Steps for use:
+ 
+ 0. If you aren't already, link against the QuartzCore framework.
+ In Xcode 3.2, right-click the group tree (sidebar thingy),
+ Add -> Existing Frameworks… -> QuartzCore.framework
+ In Xcode 4.0, go to the project file -> Build Phases and add to
+ Link Binary With Libraries.
+ 
+ 1. Subclass from this instead of UITableViewController
+ 
+ 2. UITableViewDataSource (almost certainly your subclass) should
+ implement -tableView:moveRowAtIndexPath:toIndexPath:
+ 
+ 
+ Other recommendations:
+ 
+ It is recommended that the tableView's dataSource -setReorderingEnabled:
+ to NO if there is only one row.
+ 
+ Rotation while dragging a cell is screwy and it's not clear to me how to
+ handle that situation. For now, recommendation is to not allow rotations
+ while dragging, maybe not at all.
+ 
+ 
+ Assumptions made by this code:
+ 
+ Subclass doesn't conform to UIGestureRecognizerDelegate. If it does,
+ you're going to have to figure out how to orchastrate it all. It's
+ likely not that difficult.
+ 
+ self.tableView is of type UITableViewStylePlain. It will technically
+ work with UITableViewStyleGrouped but it'll look ugly.
+ 
+ This code totally ignores self.tableView.delegate's
+ -tableView:targetIndexPathForMoveFromRowAtIndexPath:toProposedIndexPath:
+ I have no idea what I would do with that.
+ 
+ The tableview's contents won't change while dragging. I'm pretty sure if
+ you do this, it will crash.
+ 
  */
 
 
@@ -137,18 +137,18 @@
 @protected
 	UIPanGestureRecognizer *dragGestureRecognizer;
 	UILongPressGestureRecognizer *longPressGestureRecognizer;
-
+	
 @private
 	// Use setter/getter, not even subclasses should adjust this directly.
 	CADisplayLink *timerToAutoscroll;
 	CGFloat distanceThresholdToAutoscroll;
-
+	
 	CGFloat initialYOffsetOfDraggedCellCenter;
 	CGPoint veryInitialTouchPoint;
-
+	
 	UITableViewCell *draggedCell;
 	NSIndexPath *indexPathBelowDraggedCell;
-
+	
 	__weak id resignActiveObserver;
 }
 
